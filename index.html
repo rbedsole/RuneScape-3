@@ -6,26 +6,39 @@
 </style></head>
 <body><header><div class="eyebrow">Gielinor • Personal adventure tracker</div><h1>Adventurer's Ledger</h1><p class="intro">A quiet corner of RuneScape 3 to remember where you left off, choose one next objective, and keep useful references close.</p><span class="pill">Fresh account • Free-to-play</span></header>
 <main class="grid">
-<section class="card"><div class="kicker">Character</div><h2>Your adventure</h2><label for="name">Character name</label><input id="name" placeholder="Not yet recorded"><label for="style">Current combat focus</label><select id="style"><option>Undecided</option><option>Melee</option><option>Ranged</option><option>Magic</option><option>Necromancy</option></select><label for="membership">Account status</label><select id="membership"><option>Free-to-play</option><option>Member</option></select><button id="saveCharacter">Save character</button></section>
-<section class="card"><div class="kicker">Resume here</div><h2>Next objective</h2><label for="objective">One thing to do next</label><textarea id="objective" placeholder="Choose the next quest or skill goal when you return."></textarea><label for="location">Last location</label><input id="location" placeholder="Where did you log out?"><button id="saveProgress">Save progress</button></section>
-<section class="card"><div class="kicker">Quest journal</div><h2>Quest tracking</h2><label for="quest">Quest name</label><input id="quest" placeholder="e.g. Cook's Assistant"><label for="questStatus">Status</label><select id="questStatus"><option>Planned</option><option>In progress</option><option>Completed</option></select><button id="addQuest">Add quest</button><ul id="questList"></ul><p class="small">Use the in-game Quest Helper for step-by-step walkthroughs.</p></section>
-<section class="card"><div class="kicker">Skill goals</div><h2>Training tracker</h2><label for="skill">Skill</label><input id="skill" placeholder="e.g. Mining"><label for="level">Current level</label><input id="level" type="number" min="1" max="120" value="1"><label for="target">Target level</label><input id="target" type="number" min="1" max="120" value="20"><button id="addSkill">Add goal</button><ul id="skillList"></ul></section>
-<section class="card"><div class="kicker">Field notes</div><h2>Session log</h2><label for="note">What happened today?</label><textarea id="note" placeholder="Finished a quest, unlocked a skill, found something interesting…"></textarea><button id="addNote">Add entry</button><ul id="noteList"></ul></section>
-<section class="card"><div class="kicker">Reference shelf</div><h2>Trusted guides</h2><ul><li><a href="https://runescape.wiki/w/New_Player_Guide_to_RuneScape" target="_blank" rel="noopener">New player guide</a></li><li><a href="https://runescape.wiki/w/Quests/Strategy" target="_blank" rel="noopener">Quest strategy guide</a></li><li><a href="https://runescape.wiki/w/Skill_training_guides" target="_blank" rel="noopener">Skill training guides</a></li><li><a href="https://runescape.wiki/w/Revolution/Bars" target="_blank" rel="noopener">Revolution ability bars</a></li><li><a href="https://pvme.io/" target="_blank" rel="noopener">PvM Encyclopedia</a></li></ul><div class="divider"></div><p class="small notice">Quest Helper is installed in-game. It supports selected quests, marked by a green asterisk in the quest journal.</p></section>
-<section class="card wide"><div class="kicker">Your data</div><h2>Backup & transfer</h2><p>This version stores progress locally in this browser. It does not automatically sync to GitHub or other devices. Export a backup before switching browsers or clearing browser data.</p><button id="export">Export progress (.json)</button><label for="import">Restore a saved backup</label><input id="import" type="file" accept=".json,application/json"><p id="message" class="status" role="status" aria-live="polite"></p></section>
+<section class="card"><div class="kicker">Character</div><h2 id="charName">Adventurer</h2><p id="charStage">Loading character progress…</p><span class="pill" id="charStatus">Free-to-play</span><p id="charCombat"></p></section>
+<section class="card"><div class="kicker">Resume here</div><h2>Next objective</h2><p id="objective">Loading…</p><p id="location"></p></section>
+<section class="card"><div class="kicker">Quest journal</div><h2>Quests</h2><ul id="questList"></ul></section>
+<section class="card"><div class="kicker">Skill progression</div><h2>Training goals</h2><ul id="skillList"></ul></section>
+<section class="card"><div class="kicker">Account milestones</div><h2>Important unlocks</h2><ul id="unlockList"></ul></section>
+<section class="card"><div class="kicker">Reference shelf</div><h2>Guides</h2><ul id="resourceList"></ul></section>
+<section class="card wide"><div class="kicker">Adventure history</div><h2>Session log</h2><ul id="sessionList"></ul></section>
+<section class="card wide"><div class="kicker">Sync status</div><h2>GitHub-backed progress</h2><p id="syncStatus" role="status" aria-live="polite">Checking repository…</p><button id="refresh">Refresh progress</button><p class="small">This dashboard reads progress.json from this repository. Updates made to the repository appear here after the next deployment. Progress is no longer stored separately in each browser. The website is read-only; we'll maintain the record together in GitHub.</p></section>
 </main><footer>RuneScape 3 Companion • Fan-made personal tracker • Not affiliated with Jagex</footer>
 <script>
-const key='rs3-ledger-v1',defaults={name:'',style:'Undecided',membership:'Free-to-play',objective:'',location:'',quests:[],skills:[],notes:[]};
-let state;try{state={...defaults,...JSON.parse(localStorage.getItem(key)||'{}')}}catch{state={...defaults}};
-const el=id=>document.getElementById(id),save=()=>{localStorage.setItem(key,JSON.stringify(state));el('message').textContent='Saved in this browser.'},field=id=>el(id).value;
-function line(list,text,remove){const li=document.createElement('li'),span=document.createElement('span'),btn=document.createElement('button');span.textContent=text;btn.textContent='Remove';btn.setAttribute('aria-label','Remove '+text);btn.onclick=remove;li.append(span,btn);el(list).append(li)}
-function render(){['name','style','membership','objective','location'].forEach(id=>el(id).value=state[id]||defaults[id]);['questList','skillList','noteList'].forEach(id=>el(id).replaceChildren());state.quests.forEach((q,i)=>line('questList',q.name+' • '+q.status,()=>{state.quests.splice(i,1);save();render()}));state.skills.forEach((s,i)=>line('skillList',s.name+' • '+s.level+' → '+s.target,()=>{state.skills.splice(i,1);save();render()}));state.notes.forEach((n,i)=>line('noteList',n.date+' • '+n.text,()=>{state.notes.splice(i,1);save();render()}))}
-el('saveCharacter').onclick=()=>{['name','style','membership'].forEach(id=>state[id]=field(id).trim());save()};
-el('saveProgress').onclick=()=>{['objective','location'].forEach(id=>state[id]=field(id).trim());save()};
-el('addQuest').onclick=()=>{const name=field('quest').trim();if(!name)return;state.quests.push({name,status:field('questStatus')});el('quest').value='';save();render()};
-el('addSkill').onclick=()=>{const name=field('skill').trim(),level=Number(field('level')),target=Number(field('target'));if(!name||level<1||target<1||level>120||target>120)return;state.skills.push({name,level,target});el('skill').value='';save();render()};
-el('addNote').onclick=()=>{const text=field('note').trim();if(!text)return;state.notes.unshift({text,date:new Date().toLocaleDateString()});el('note').value='';save();render()};
-el('export').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='runescape3-progress.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
-el('import').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!data||typeof data!=='object'||!Array.isArray(data.quests)||!Array.isArray(data.skills)||!Array.isArray(data.notes))throw Error('Invalid backup');if(!confirm('Replace progress stored in this browser with this backup?'))return;state={...defaults,...data};save();render()}catch{el('message').textContent='Could not read that backup file.'}e.target.value=''};
-render();
+const $=id=>document.getElementById(id);
+function put(id,value){$(id).textContent=value??'Not recorded'}
+function items(id,entries,format){const ul=$(id);ul.replaceChildren();if(!entries?.length){const li=document.createElement('li');li.textContent='Nothing recorded yet';ul.append(li);return}entries.forEach(entry=>{const li=document.createElement('li');format(li,entry);ul.append(li)})}
+function plain(li,s){li.textContent=s}
+async function load(){
+ $('syncStatus').textContent='Checking repository…';
+ try{
+ const response=await fetch('./progress.json?refresh='+Date.now(),{cache:'no-store'});
+ if(!response.ok)throw new Error('HTTP '+response.status);
+ const d=await response.json();
+ put('charName',d.character?.name||'Name not yet recorded');
+ put('charStage',d.character?.stage);
+ put('charStatus',d.character?.membership||'Not recorded');
+ put('charCombat','Combat focus: '+(d.character?.combatFocus||'Undecided'));
+ put('objective',d.current?.objective||'Not selected yet');
+ put('location','Last location: '+(d.current?.location||'Not recorded'));
+ items('questList',d.quests,(li,q)=>plain(li,q.name+' • '+q.status));
+ items('skillList',d.skills,(li,s)=>plain(li,s.name+' • '+s.level+' → '+s.target));
+ items('unlockList',d.unlocks,(li,x)=>plain(li,x));
+ items('sessionList',d.sessions,(li,s)=>plain(li,s.date+' • '+s.summary));
+ items('resourceList',d.resources,(li,r)=>{const a=document.createElement('a');a.textContent=r.name;a.href=r.url;a.target='_blank';a.rel='noopener noreferrer';li.append(a)});
+ put('syncStatus','Loaded from GitHub Pages • Last record update: '+(d.updated||'Unknown'));
+ }catch(error){put('syncStatus','Could not load progress.json. Try refreshing after GitHub Pages finishes deploying.')}
+}
+$('refresh').onclick=load;load();
 </script></body></html>
