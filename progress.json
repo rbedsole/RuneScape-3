@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-10-25",
+  "character": {
+    "name": null,
+    "membership": "Free-to-play",
+    "combatFocus": "Undecided",
+    "stage": "Tutorial completed; fresh character"
+  },
+  "current": {
+    "objective": "Choose the first quest or beginner path when returning to RuneScape 3",
+    "location": null
+  },
+  "quests": [],
+  "skills": [],
+  "unlocks": [
+    "Tutorial completed",
+    "Official Quest Helper plugin installed with full assistance"
+  ],
+  "resources": [
+    {
+      "name": "New player guide",
+      "url": "https://runescape.wiki/w/New_Player_Guide_to_RuneScape"
+    },
+    {
+      "name": "Quest strategy guide",
+      "url": "https://runescape.wiki/w/Quests/Strategy"
+    },
+    {
+      "name": "Skill training guides",
+      "url": "https://runescape.wiki/w/Skill_training_guides"
+    },
+    {
+      "name": "Revolution ability bars",
+      "url": "https://runescape.wiki/w/Revolution/Bars"
+    }
+  ],
+  "sessions": [
+    {
+      "date": "2026-10-25",
+      "summary": "Started a fresh RuneScape 3 character, completed the tutorial, installed and configured the official Quest Helper plugin. Character name not yet confirmed."
+    }
+  ]
+}
