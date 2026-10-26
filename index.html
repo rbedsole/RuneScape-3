@@ -13,6 +13,18 @@
 <section class="card"><div class="kicker">Account milestones</div><h2>Important unlocks</h2><ul id="unlockList"></ul></section>
 <section class="card"><div class="kicker">Reference shelf</div><h2>Guides</h2><ul id="resourceList"></ul></section>
 <section class="card wide"><div class="kicker">Adventure history</div><h2>Session log</h2><ul id="sessionList"></ul></section>
+<section class="card wide"><div class="kicker">Edit your playthrough</div><h2>Update progress</h2><p>Make changes here, then export your updated record. This is a local draft until the exported file is committed to GitHub.</p>
+<label for="editName">Character name</label><input id="editName" placeholder="Character name">
+<label for="editCombat">Combat focus</label><select id="editCombat"><option>Undecided</option><option>Melee</option><option>Ranged</option><option>Magic</option><option>Necromancy</option></select>
+<label for="editMembership">Membership</label><select id="editMembership"><option>Free-to-play</option><option>Member</option></select>
+<label for="editObjective">Next objective</label><textarea id="editObjective"></textarea>
+<label for="editLocation">Last location</label><input id="editLocation">
+<label for="editQuest">Quest name</label><input id="editQuest"><label for="editQuestStatus">Quest status</label><select id="editQuestStatus"><option>Planned</option><option>In progress</option><option>Completed</option></select><button id="addQuest">Add quest</button>
+<label for="editSkill">Skill name</label><input id="editSkill"><label for="editLevel">Current level</label><input id="editLevel" type="number" min="1" max="120" value="1"><label for="editTarget">Target level</label><input id="editTarget" type="number" min="1" max="120" value="20"><button id="addSkill">Add skill goal</button>
+<label for="editNote">Session note</label><textarea id="editNote"></textarea><button id="addNote">Add session note</button>
+<div class="divider"></div><button id="saveDraft">Save draft on this device</button><button id="exportDraft">Export updated progress.json</button><button id="resetDraft">Discard local draft</button>
+<p class="small" id="draftStatus" role="status"></p>
+<p class="small">To synchronize devices, commit the exported progress.json to <a href="https://github.com/rbedsole/RuneScape-3/edit/main/progress.json" target="_blank" rel="noopener">GitHub</a>, or share the exported file with me to update the repository. Do not put GitHub access tokens into this website.</p></section>
 <section class="card wide"><div class="kicker">Sync status</div><h2>GitHub-backed progress</h2><p id="syncStatus" role="status" aria-live="polite">Checking repository…</p><button id="refresh">Refresh progress</button><p class="small">This dashboard reads progress.json from this repository. Updates made to the repository appear here after the next deployment. Progress is no longer stored separately in each browser. The website is read-only; we'll maintain the record together in GitHub.</p></section>
 </main><footer>RuneScape 3 Companion • Fan-made personal tracker • Not affiliated with Jagex</footer>
 <script>
@@ -20,12 +32,25 @@ const $=id=>document.getElementById(id);
 function put(id,value){$(id).textContent=value??'Not recorded'}
 function items(id,entries,format){const ul=$(id);ul.replaceChildren();if(!entries?.length){const li=document.createElement('li');li.textContent='Nothing recorded yet';ul.append(li);return}entries.forEach(entry=>{const li=document.createElement('li');format(li,entry);ul.append(li)})}
 function plain(li,s){li.textContent=s}
-async function load(){
+let record=null;
+const draftKey='rs3-progress-draft-v2';
+function editable(){return record||{}}
+function fillForm(){if(!record)return;document.getElementById('editName').value=record.character?.name||'';document.getElementById('editCombat').value=record.character?.combatFocus||'Undecided';document.getElementById('editMembership').value=record.character?.membership||'Free-to-play';document.getElementById('editObjective').value=record.current?.objective||'';document.getElementById('editLocation').value=record.current?.location||''}
+function fields(){record.character={...record.character,name:$('editName').value.trim()||null,combatFocus:$('editCombat').value,membership:$('editMembership').value};record.current={...record.current,objective:$('editObjective').value.trim(),location:$('editLocation').value.trim()||null};record.updated=new Date().toISOString().slice(0,10)}
+function store(){fields();localStorage.setItem(draftKey,JSON.stringify(record));$('draftStatus').textContent='Draft saved on this device. Export and commit it to sync.';show(record)}
+function addArray(id,item){if(!record)return;fields();record[id]=record[id]||[];record[id].push(item);store()}
+$('saveDraft').onclick=store;
+$('addQuest').onclick=()=>{const name=$('editQuest').value.trim();if(name){addArray('quests',{name,status:$('editQuestStatus').value});$('editQuest').value=''}};
+$('addSkill').onclick=()=>{const name=$('editSkill').value.trim(),level=Number($('editLevel').value),target=Number($('editTarget').value);if(name&&level>=1&&target>=1&&level<=120&&target<=120){addArray('skills',{name,level,target});$('editSkill').value=''}};
+$('addNote').onclick=()=>{const summary=$('editNote').value.trim();if(summary){addArray('sessions',{date:new Date().toISOString().slice(0,10),summary});$('editNote').value=''}};
+$('exportDraft').onclick=()=>{if(!record)return;store();const blob=new Blob([JSON.stringify(record,null,2)+'\\n'],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='progress.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+$('resetDraft').onclick=()=>{if(confirm('Discard unsynced changes on this device?')){localStorage.removeItem(draftKey);load()}};
+function show(d){
  $('syncStatus').textContent='Checking repository…';
  try{
  const response=await fetch('./progress.json?refresh='+Date.now(),{cache:'no-store'});
  if(!response.ok)throw new Error('HTTP '+response.status);
- const d=await response.json();
+ const remote=await response.json();let d=remote;try{const saved=localStorage.getItem(draftKey);if(saved){d=JSON.parse(saved);$('draftStatus').textContent='Local draft loaded. Export and commit to sync.'}}catch{}record=d;fillForm();show(d);
  put('charName',d.character?.name||'Name not yet recorded');
  put('charStage',d.character?.stage);
  put('charStatus',d.character?.membership||'Not recorded');
@@ -37,7 +62,7 @@ async function load(){
  items('unlockList',d.unlocks,(li,x)=>plain(li,x));
  items('sessionList',d.sessions,(li,s)=>plain(li,s.date+' • '+s.summary));
  items('resourceList',d.resources,(li,r)=>{const a=document.createElement('a');a.textContent=r.name;a.href=r.url;a.target='_blank';a.rel='noopener noreferrer';li.append(a)});
- put('syncStatus','Loaded from GitHub Pages • Last record update: '+(d.updated||'Unknown'));
+ }\n put('syncStatus','Loaded progress • Last record update: '+(record.updated||'Unknown'));
  }catch(error){put('syncStatus','Could not load progress.json. Try refreshing after GitHub Pages finishes deploying.')}
 }
 $('refresh').onclick=load;load();
